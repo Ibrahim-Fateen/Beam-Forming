@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600">
+  <!-- Background -->
+  <rect width="1000" height="600" fill="#f0f0f0"/>
+
+  <!-- Left Sidebar -->
+  <rect x="10" y="10" width="200" height="530" fill="#ffffff" stroke="#cccccc" stroke-width="2"/>
+  <text x="30" y="40" font-weight="bold">Scenario</text>
+  <rect x="20" y="50" width="180" height="40" fill="#e0e0e0" stroke="#aaaaaa"/>
+  <text x="30" y="75" font-size="12">▼ 5G Communication</text>
+
+  <text x="30" y="120" font-weight="bold">Array Configuration</text>
+  <text x="30" y="150">Number of Elements</text>
+  <rect x="20" y="160" width="180" height="20" fill="#e0e0e0"/>
+  <rect x="20" y="160" width="90" height="20" fill="#4a90e2"/>
+
+  <text x="30" y="200">Array Type</text>
+  <rect x="20" y="210" width="180" height="40" fill="#e0e0e0" stroke="#aaaaaa"/>
+  <text x="30" y="235" font-size="12">▼ Linear</text>
+
+  <text x="30" y="280" font-weight="bold">Beam Steering</text>
+  <rect x="20" y="300" width="180" height="20" fill="#e0e0e0"/>
+  <rect x="100" y="300" width="20" height="20" fill="#4a90e2"/>
+  <text x="30" y="340">Angle: 30°</text>
+
+  <!-- Central Visualization Area -->
+  <rect x="220" y="10" width="560" height="400" fill="#ffffff" stroke="#cccccc" stroke-width="2"/>
+  <text x="240" y="40" font-weight="bold">Visualization</text>
+
+  <!-- Tabs -->
+  <rect x="230" y="50" width="180" height="30" fill="#f0f0f0" stroke="#aaaaaa"/>
+  <rect x="410" y="50" width="180" height="30" fill="#e0e0e0" stroke="#aaaaaa"/>
+  <text x="250" y="70">Beam Profile</text>
+  <text x="430" y="70">Interference Map</text>
+
+  <!-- Visualization Placeholder -->
+  <rect x="230" y="80" width="540" height="320" fill="#f0f0f0" stroke="#cccccc"/>
+  <text x="400" y="250" text-anchor="middle" fill="#888888">Visualization Area</text>
+
+  <!-- Right Sidebar -->
+  <rect x="790" y="10" width="200" height="530" fill="#ffffff" stroke="#cccccc" stroke-width="2"/>
+  <text x="810" y="40" font-weight="bold">Advanced Controls</text>
+
+  <text x="810" y="80">Noise Simulation</text>
+  <rect x="800" y="90" width="180" height="40" fill="#e0e0e0" stroke="#aaaaaa"/>
+  <circle cx="830" cy="110" r="10" fill="#4a90e2"/>
+
+  <text x="810" y="150">Frequency Range</text>
+  <rect x="800" y="160" width="180" height="40" fill="#e0e0e0" stroke="#aaaaaa"/>
+  <text x="810" y="185" font-size="12">▼ 1-2 GHz</text>
+
+  <!-- Bottom Status Bar -->
+  <rect x="10" y="550" width="980" height="40" fill="#e0e0e0"/>
+  <text x="20" y="575">Beam Angle: 30°</text>
+  <text x="200" y="575">Elements: 8</text>
+  <text x="380" y="575">Scenario: 5G</text>
+  <text x="560" y="575">Computational Load: Low</text>
+</svg>
