@@ -5,57 +5,8 @@ from PyQt5.QtCore import Qt, QTimer
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-
-class ArrayElement:
-    def __init__(self, position, phase_shift=0, frequency=1000, pattern_type='isotropic'):
-        self.position = np.array(position)
-        self.phase_shift = phase_shift
-        self.frequency = frequency
-        self.pattern_type = pattern_type
-        
-    def calculate_field(self, point, time=0):
-        distance = np.linalg.norm(point - self.position)
-        k = 2 * np.pi * self.frequency / 343.0  # wavenumber
-        
-        # Calculate angle relative to element
-        dx = point[0] - self.position[0]
-        angle = np.arctan2(point[1] - self.position[1], dx)
-        
-        if self.pattern_type == 'isotropic':
-            pattern = 1.0
-        else:  # sinc pattern
-            u = k * dx * np.sin(angle)
-            pattern = np.sinc(u / np.pi)
-            
-        return pattern * np.exp(1j * (k * distance + self.phase_shift)) / max(distance, 0.1)
-
-class PhasedArray:
-    def __init__(self, center=(0,0), num_elements=8, geometry='linear', radius=1.0):
-        self.center = np.array(center)
-        self.num_elements = num_elements
-        self.geometry = geometry
-        self.radius = radius
-        self.elements = []
-        self.create_array()
-        
-    def create_array(self):
-        self.elements.clear()
-        if self.geometry == 'linear':
-            spacing = self.radius / max(1, self.num_elements - 1)
-            for i in range(self.num_elements):
-                pos = self.center + np.array([-self.radius/2 + i*spacing, 0])
-                self.elements.append(ArrayElement(pos))
-        else:  # curved
-            for i in range(self.num_elements):
-                angle = -(i / (self.num_elements - 1) ) * np.pi
-                pos = self.center + self.radius * np.array([np.cos(angle), np.sin(angle)])
-                self.elements.append(ArrayElement(pos))
-
-    def set_steering_angle(self, angle):
-        k = 2 * np.pi * self.elements[0].frequency / 343.0
-        d = self.radius / (self.num_elements - 1)
-        for i, element in enumerate(self.elements):
-            element.phase_shift = -k * d * i * np.sin(np.radians(angle))
+from ArrayElement import ArrayElement
+from Array import Array
 
 class ControlPanel(QWidget):
     def __init__(self, parent=None):
@@ -202,7 +153,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Beamforming Simulator")
         self.setup_ui()
         
-        self.arrays = [PhasedArray()]
+        self.arrays = [Array()]
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_simulation)
         self.timer.start(100)
