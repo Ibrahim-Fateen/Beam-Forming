@@ -30,24 +30,24 @@ class ArrayElement:
         return pattern * np.exp(1j * (k * distance + self.phase_shift)) / max(distance, 0.1)
 
 class PhasedArray:
-    def __init__(self, center=(0,0), num_elements=8, radius=1.0, curvature=0.0):
+    def __init__(self, center=(0,0), num_elements=8, geometry='linear', radius=1.0):
         self.center = np.array(center)
         self.num_elements = num_elements
+        self.geometry = geometry
         self.radius = radius
-        self.curvature = curvature
         self.elements = []
         self.create_array()
         
     def create_array(self):
         self.elements.clear()
-        if self.curvature == 0.0:  # linear
+        if self.geometry == 'linear':
             spacing = self.radius / max(1, self.num_elements - 1)
             for i in range(self.num_elements):
                 pos = self.center + np.array([-self.radius/2 + i*spacing, 0])
                 self.elements.append(ArrayElement(pos))
         else:  # curved
             for i in range(self.num_elements):
-                angle = -(i / (self.num_elements - 1)) * np.pi * self.curvature
+                angle = -(i / (self.num_elements - 1) ) * np.pi
                 pos = self.center + self.radius * np.array([np.cos(angle), np.sin(angle)])
                 self.elements.append(ArrayElement(pos))
 
