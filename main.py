@@ -1,6 +1,8 @@
+import json
 import sys
 import numpy as np
 from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtCore import QTimer
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -51,6 +53,60 @@ class MainWindow(QMainWindow):
 
         self.ui.comboBox_2.addItems(['Hz', 'kHz', 'MHz'])
 
+        self.ui.saveScenarioButton.clicked.connect(self.save_scenario)
+        self.ui.loadScenarioButton.clicked.connect(self.load_scenario)
+
+    def save_scenario(self):
+        try:
+            options = QFileDialog.Options()
+            file_name, _ = QFileDialog.getSaveFileName(self, "Save Scenario", "", "JSON Files (*.json);;All Files (*)",
+                                                       options=options)
+            if file_name:
+                scenario = {
+                    "arrays": [
+                        {
+                            "center": array.center.tolist(),
+                            "num_elements": array.num_elements,
+                            "radius": array.radius,
+                            "curvature": array.curvature,
+                            "rotation": array.rotation,
+                            "steering_angle": array.steering_angle,
+                            "frequencies": [element.frequencies for element in array.elements]
+                        }
+                        for array in self.arrays
+                    ]
+                }
+                with open(file_name, 'w') as file:
+                    json.dump(scenario, file, indent=4)
+            print("Scenario saved successfully.")
+        except Exception as e:
+            print(f"An error occurred while saving the scenario: {e}")
+
+    def load_scenario(self):
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(self, "Load Scenario", "", "JSON Files (*.json);;All Files (*)",
+                                                   options=options)
+        if file_name:
+            with open(file_name, 'r') as file:
+                scenario = json.load(file)
+                self.arrays.clear()
+                self.ui.arrayList.clear()
+                for array_data in scenario["arrays"]:
+                    array = Array(
+                        center=array_data["center"],
+                        num_elements=array_data["num_elements"],
+                        radius=array_data["radius"],
+                        curvature=array_data["curvature"],
+                        rotation=array_data["rotation"]
+                    )
+                    array.set_steering_angle(array_data["steering_angle"])
+                    for element, freqs in zip(array.elements, array_data["frequencies"]):
+                        element.frequencies = freqs
+                    self.arrays.append(array)
+                    self.ui.arrayList.addItem(f"Array {len(self.arrays)}")
+                if self.arrays:
+                    self.ui.arrayList.setCurrentRow(0)
+                self.update_simulation()
     def add_array(self):
         array = Array()
         self.arrays.append(array)

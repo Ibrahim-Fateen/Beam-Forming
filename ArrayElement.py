@@ -7,10 +7,11 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 class ArrayElement:
-    def __init__(self, position, phase_shift=0, frequency=1000, pattern_type='isotropic'):
+    def __init__(self, position, phase_shift=0, frequency=1000, pattern_type='isotropic', frequencies=None):
         self.position = np.array(position)
         self.phase_shift = phase_shift
         self.frequency = frequency
+        self.frequencies = frequencies if frequencies is not None else []
         self.pattern_type = pattern_type
         
     def calculate_field(self, point, time=0):
