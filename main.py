@@ -18,11 +18,11 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
         self.setup_plots()
         self.setup_controls()
-        
+        self.block = False
         self.arrays = []
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_simulation)
-        self.timer.start(100)
+        # self.timer = QTimer()
+        # self.timer.timeout.connect(self.update_simulation)
+        # self.timer.start(100)
 
     def setup_plots(self):
         self.field_plot = FieldPlotWidget()
@@ -36,7 +36,7 @@ class MainWindow(QMainWindow):
     def setup_controls(self):
         self.ui.addArrayButton.clicked.connect(self.add_array)
         self.ui.removeArrayButton.clicked.connect(self.remove_array)
-        self.ui.arrayList.currentRowChanged.connect(self.on_array_selected)
+        self.ui.arrayList.currentRowChanged.connect(lambda index: self.on_array_selected(index))
 
         self.ui.xPosition.valueChanged.connect(self.update_selected_array)
         self.ui.yPosition.valueChanged.connect(self.update_selected_array)
@@ -57,19 +57,29 @@ class MainWindow(QMainWindow):
         self.ui.arrayList.addItem(f"Array {len(self.arrays)}")
         if len(self.arrays) == 1:
             self.ui.arrayList.setCurrentRow(0)
+        self.update_simulation()
 
     def remove_array(self):
         current_row = self.ui.arrayList.currentRow()
         if current_row >= 0:
             self.arrays.pop(current_row)
             self.ui.arrayList.takeItem(current_row)
+            self.update_simulation()
 
     def on_array_selected(self, index):
+        self.block = True
         if index >= 0 and index < len(self.arrays):
+            # print(index)
             array = self.arrays[index]
+            self.ui.steeringAngle.setValue(array.steering_angle)
             self.ui.numElements.setValue(array.num_elements)
             self.ui.elementSpacing.setValue(array.radius / max(1, array.num_elements - 1))
             self.ui.curvature.setValue(array.curvature)
+            self.ui.xPosition.setValue(array.center[0])
+            self.ui.yPosition.setValue(array.center[1])
+            self.ui.rotation.setValue(int(array.rotation))
+        self.block = False
+
 
     def add_frequency(self):
         freq = self.ui.frequencyInput.value()
@@ -86,6 +96,8 @@ class MainWindow(QMainWindow):
             self.ui.frequencyList.takeItem(current_row)
 
     def update_selected_array(self):
+        if self.block:
+            return
         current_row = self.ui.arrayList.currentRow()
         if current_row >= 0 and current_row < len(self.arrays):
             array = self.arrays[current_row]
@@ -108,6 +120,7 @@ class MainWindow(QMainWindow):
             if freqs:
                 for element in array.elements:
                     element.frequencies = freqs
+            self.update_simulation()
 
     def update_simulation(self):
         self.field_plot.update_plot(self.arrays)
