@@ -11,6 +11,7 @@ from Array import Array
 from mainwin import Ui_MainWindow
 from InterferenceMap import FieldPlotWidget
 from BeamPattern import PolarPlotWidget
+import os
 
 
 class MainWindow(QMainWindow):
@@ -56,6 +57,9 @@ class MainWindow(QMainWindow):
         self.ui.saveScenarioButton.clicked.connect(self.save_scenario)
         self.ui.loadScenarioButton.clicked.connect(self.load_scenario)
 
+        self.ui.scenarioSelect.currentIndexChanged.connect(self.load_selected_scenario)
+        self.populate_scenario_select()
+
     def save_scenario(self):
         try:
             options = QFileDialog.Options()
@@ -71,7 +75,7 @@ class MainWindow(QMainWindow):
                             "curvature": array.curvature,
                             "rotation": array.rotation,
                             "steering_angle": array.steering_angle,
-                            "frequencies": [element.frequencies for element in array.elements]
+                            "frequencies": array.elements[0].frequencies
                         }
                         for array in self.arrays
                     ]
@@ -107,6 +111,16 @@ class MainWindow(QMainWindow):
                 if self.arrays:
                     self.ui.arrayList.setCurrentRow(0)
                 self.update_simulation()
+
+    def populate_scenario_select(self):
+        self.ui.scenarioSelect.clear()
+        scenario_dir = "scenarios"  # Directory where scenarios are saved
+        if not os.path.exists(scenario_dir):
+            os.makedirs(scenario_dir)
+        for file_name in os.listdir(scenario_dir):
+            if file_name.endswith(".json"):
+                self.ui.scenarioSelect.addItem(file_name)
+
     def add_array(self):
         array = Array()
         self.arrays.append(array)
