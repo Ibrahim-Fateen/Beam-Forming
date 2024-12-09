@@ -25,8 +25,8 @@ class FieldPlotWidget(QWidget):
         self.ax_field.clear()
         
         # Field plot
-        x = np.linspace(-3, 3, 10)
-        y = np.linspace(-1, 3, 10)
+        x = np.linspace(-3, 3, 50)
+        y = np.linspace(0, 6, 50)
         X, Y = np.meshgrid(x, y)
         Z = np.zeros_like(X, dtype=complex)
         

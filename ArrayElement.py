@@ -9,8 +9,10 @@ from typing import List
 from Wave import Wave
 
 class ArrayElement:
+    def __init__(self, position, wave:Wave, phase_shift=0, pattern_type='isotropic'):
         self.position = np.array(position)
         self.phase_shift = phase_shift
+        self.wave = wave
         self.pattern_type = pattern_type
         
     def calculate_field(self, point, time=0):
