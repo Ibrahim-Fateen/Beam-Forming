@@ -8,7 +8,7 @@ def setup_logger(name, log_dir='logs/', level=logging.DEBUG):
     logger = logging.getLogger(name)
     logger.setLevel(level)
     current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    log_file = f"{log_dir}ImageMixer_{current_time}.log"
+    log_file = f"{log_dir}BeamForming_{current_time}.log"
 
     # Create handlers
     file_handler = logging.FileHandler(log_file)
