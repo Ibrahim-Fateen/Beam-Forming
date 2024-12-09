@@ -5,12 +5,12 @@ from PyQt5.QtCore import Qt, QTimer
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+from typing import List
+from Wave import Wave
 
 class ArrayElement:
-    def __init__(self, position, phase_shift=0, frequency=1000, pattern_type='isotropic'):
         self.position = np.array(position)
         self.phase_shift = phase_shift
-        self.frequency = frequency
         self.pattern_type = pattern_type
         
     def calculate_field(self, point, time=0):
@@ -25,4 +25,4 @@ class ArrayElement:
         else:  # sinc pattern
             u = k * dx * np.sin(angle)
             pattern = np.sinc(u / np.pi)
-        return pattern * np.exp(1j * (k * distance + self.phase_shift)) / max(distance, 0.1)
+  

@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from ArrayElement import ArrayElement
+from Wave import Wave
 class Array:
     def __init__(self, center=(0,0), num_elements=8, radius=1.0, curvature=0.0, rotation=0.0):
         self.center = np.array(center)
@@ -46,3 +47,4 @@ class Array:
         d = self.radius / (self.num_elements - 1)
         for i, element in enumerate(self.elements):
             element.phase_shift = -k * d * i * np.sin(np.radians(angle))
+                     
