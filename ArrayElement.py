@@ -27,4 +27,6 @@ class ArrayElement:
         else:  # sinc pattern
             u = k * dx * np.sin(angle)
             pattern = np.sinc(u / np.pi)
+            
+        return pattern * np.exp(1j * (k * distance + self.phase_shift)) / max(distance, 0.1)     
   
