@@ -11,7 +11,6 @@ class Wave:
     """
     def __init__(self):
         self.components: List[WaveComponent] = []
-        self.wave_number = 1
         
     def add_component(self, amplitude, frequency, phase):
         component = WaveComponent(amplitude, frequency, phase)
