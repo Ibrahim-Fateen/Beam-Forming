@@ -1,201 +1,117 @@
 import sys
 import numpy as np
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import QTimer
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from ArrayElement import ArrayElement
 from Array import Array
+from mainwin import Ui_MainWindow
+from InterferenceMap import FieldPlotWidget
+from BeamPattern import PolarPlotWidget
 
-class ControlPanel(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setup_ui()
-
-    def setup_ui(self):
-        layout = QVBoxLayout()
-        
-        # Array controls
-        array_group = QGroupBox("Array Configuration")
-        array_layout = QFormLayout()
-        
-        self.num_elements = QSpinBox()
-        self.num_elements.setRange(2, 32)
-        self.num_elements.setValue(8)
-        array_layout.addRow("Number of Elements:", self.num_elements)
-        
-        self.geometry = QComboBox()
-        self.geometry.addItems(['Linear', 'Curved'])
-        array_layout.addRow("Geometry:", self.geometry)
-        
-        self.radius = QDoubleSpinBox()
-        self.radius.setRange(0.1, 5.0)
-        self.radius.setValue(1.0)
-        self.radius.setSingleStep(0.1)
-        array_layout.addRow("Radius (m):", self.radius)
-        
-        array_group.setLayout(array_layout)
-        layout.addWidget(array_group)
-        
-        # Beam controls
-        beam_group = QGroupBox("Beam Control")
-        beam_layout = QFormLayout()
-        
-        self.steering = QSlider(Qt.Horizontal)
-        self.steering.setRange(-90, 90)
-        self.steering.setValue(0)
-        beam_layout.addRow("Steering Angle (°):", self.steering)
-        
-        self.frequency = QSpinBox()
-        self.frequency.setRange(100, 5000)
-        self.frequency.setValue(1000)
-        beam_layout.addRow("Frequency (Hz):", self.frequency)
-        
-        beam_group.setLayout(beam_layout)
-        layout.addWidget(beam_group)
-        
-        # Add pattern selection
-        pattern_group = QGroupBox("Element Pattern")
-        pattern_layout = QVBoxLayout()
-        
-        self.pattern_type = QButtonGroup()
-        self.isotropic_rb = QRadioButton("Isotropic")
-        self.sinc_rb = QRadioButton("Sinc")
-        self.isotropic_rb.setChecked(True)
-        
-        self.pattern_type.addButton(self.isotropic_rb)
-        self.pattern_type.addButton(self.sinc_rb)
-        pattern_layout.addWidget(self.isotropic_rb)
-        pattern_layout.addWidget(self.sinc_rb)
-        
-        pattern_group.setLayout(pattern_layout)
-        layout.addWidget(pattern_group)
-        
-        layout.addStretch()
-        self.setLayout(layout)
-
-class PlotWidget(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setup_ui()
-        
-    def setup_ui(self):
-        layout = QVBoxLayout()
-        
-        # Create figure with 2 subplots
-        self.figure = Figure(figsize=(12, 8))
-        self.canvas = FigureCanvasQTAgg(self.figure)
-        
-        # Create grid specification for custom layout
-        gs = self.figure.add_gridspec(2, 1)
-        
-        # Create subplots
-        self.ax_field = self.figure.add_subplot(gs[0])  # Top plot
-        self.ax_polar = self.figure.add_subplot(gs[1], projection='polar')  # Bottom plot
-        
-        self.figure.tight_layout()
-        layout.addWidget(self.canvas)
-        self.setLayout(layout)
-        
-    def update_plots(self, arrays):
-        self.ax_field.clear()
-        self.ax_polar.clear()
-        
-        # Field plot
-        x = np.linspace(-3, 3, 100) #100 points between -3 and 3
-        y = np.linspace(-1, 5, 20)
-        X, Y = np.meshgrid(x, y)
-        Z = np.zeros_like(X, dtype=complex)
-        
-        for array in arrays:
-            for element in array.elements:
-                points = np.stack([X.flatten(), Y.flatten()], axis=1)
-                field = np.array([element.calculate_field(point) for point in points])
-                Z += field.reshape(X.shape)
-                
-        self.ax_field.contourf(X, Y, np.abs(Z), levels=50)
-        self.ax_field.set_title('Field Intensity')
-        self.ax_field.set_aspect('equal')
-        
-        # Polar beam pattern plot
-        theta = np.linspace(0, np.pi, 120)
-        pattern = np.zeros_like(theta, dtype=complex)
-        
-        for array in arrays:
-            r = 2.0
-            for angle, i in zip(theta, range(len(theta))):
-                point = r * np.array([np.cos(angle), np.sin(angle)])
-                for element in array.elements:
-                    pattern[i] += element.calculate_field(point)
-        
-        pattern_db = 20*np.log10(np.abs(pattern))
-        pattern_db = np.maximum(pattern_db, -40)  # Limit minimum dB
-        
-        # Set counter-clockwise rotation
-        self.ax_polar.plot(theta, pattern_db + 40)
-        self.ax_polar.set_title('Polar Beam Pattern')
-        self.ax_polar.set_theta_zero_location('E')  # 0° at East (right)
-        self.ax_polar.set_theta_direction(1)  # Counter-clockwise direction
-        self.ax_polar.set_rlabel_position(90)  # Move radial labels to top
-        self.ax_polar.grid(True)
-        
-        # Set custom angle labels
-        angles = np.arange(0, 360, 30)
-        self.ax_polar.set_thetagrids(angles, labels=[f'{angle}°' for angle in angles])
-        
-        self.figure.tight_layout()
-        self.canvas.draw()
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Beamforming Simulator")
-        self.setup_ui()
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+        self.setup_plots()
+        self.setup_controls()
         
-        self.arrays = [Array()]
+        self.arrays = []
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_simulation)
         self.timer.start(100)
-        
-    def setup_ui(self):
-        central = QWidget()
-        layout = QHBoxLayout()
-        
-        self.controls = ControlPanel()
-        self.plot_widget = PlotWidget()
-        
-        layout.addWidget(self.controls)
-        layout.addWidget(self.plot_widget, stretch=2)
-        
-        central.setLayout(layout)
-        self.setCentralWidget(central)
-        
-        # Connect signals
-        self.controls.num_elements.valueChanged.connect(self.update_array)
-        self.controls.geometry.currentTextChanged.connect(self.update_array)
-        self.controls.radius.valueChanged.connect(self.update_array)
-        self.controls.steering.valueChanged.connect(self.update_array)
-        self.controls.frequency.valueChanged.connect(self.update_array)
-        
-    def update_array(self):
-        array = self.arrays[0]
-        array.num_elements = self.controls.num_elements.value()
-        array.geometry = self.controls.geometry.currentText().lower()
-        array.radius = self.controls.radius.value()
-        array.create_array()
-        
-        # Update frequency and steering
-        freq = self.controls.frequency.value()
-        pattern_type = 'isotropic' if self.controls.isotropic_rb.isChecked() else 'sinc'
-        for element in array.elements:
-            element.pattern_type = pattern_type
-            element.frequency = freq
+
+    def setup_plots(self):
+        self.field_plot = FieldPlotWidget()
+        beam_layout = QVBoxLayout(self.ui.beamPatternTab)
+        beam_layout.addWidget(self.field_plot)
+
+        self.polar_plot = PolarPlotWidget()
+        interference_layout = QVBoxLayout(self.ui.interferenceMapTab)
+        interference_layout.addWidget(self.polar_plot)
+
+    def setup_controls(self):
+        self.ui.addArrayButton.clicked.connect(self.add_array)
+        self.ui.removeArrayButton.clicked.connect(self.remove_array)
+        self.ui.arrayList.currentRowChanged.connect(self.on_array_selected)
+
+        self.ui.xPosition.valueChanged.connect(self.update_selected_array)
+        self.ui.yPosition.valueChanged.connect(self.update_selected_array)
+        self.ui.rotation.valueChanged.connect(self.update_selected_array)
+        self.ui.numElements.valueChanged.connect(self.update_selected_array)
+        self.ui.elementSpacing.valueChanged.connect(self.update_selected_array)
+        self.ui.curvature.valueChanged.connect(self.update_selected_array)
+        self.ui.steeringAngle.valueChanged.connect(self.update_selected_array)
+
+        self.ui.addFrequencyButton.clicked.connect(self.add_frequency)
+        self.ui.removeFrequencyButton.clicked.connect(self.remove_frequency)
+
+        self.ui.comboBox_2.addItems(['Hz', 'kHz', 'MHz'])
+
+    def add_array(self):
+        array = Array()
+        self.arrays.append(array)
+        self.ui.arrayList.addItem(f"Array {len(self.arrays)}")
+        if len(self.arrays) == 1:
+            self.ui.arrayList.setCurrentRow(0)
+
+    def remove_array(self):
+        current_row = self.ui.arrayList.currentRow()
+        if current_row >= 0:
+            self.arrays.pop(current_row)
+            self.ui.arrayList.takeItem(current_row)
+
+    def on_array_selected(self, index):
+        if index >= 0 and index < len(self.arrays):
+            array = self.arrays[index]
+            self.ui.numElements.setValue(array.num_elements)
+            self.ui.elementSpacing.setValue(array.radius / max(1, array.num_elements - 1))
+            self.ui.curvature.setValue(array.curvature)
+
+    def add_frequency(self):
+        freq = self.ui.frequencyInput.value()
+        unit = self.ui.comboBox_2.currentText()
+        if unit == 'kHz':
+            freq *= 1000
+        elif unit == 'MHz':
+            freq *= 1000000
+        self.ui.frequencyList.addItem(f"{freq} Hz")
+
+    def remove_frequency(self):
+        current_row = self.ui.frequencyList.currentRow()
+        if current_row >= 0:
+            self.ui.frequencyList.takeItem(current_row)
+
+    def update_selected_array(self):
+        current_row = self.ui.arrayList.currentRow()
+        if current_row >= 0 and current_row < len(self.arrays):
+            array = self.arrays[current_row]
+            array.num_elements = self.ui.numElements.value()
+            array.radius = self.ui.elementSpacing.value() * (array.num_elements - 1)
+            array.curvature = self.ui.curvature.value()
             
-        array.set_steering_angle(self.controls.steering.value())
-        
+            array.center = np.array([self.ui.xPosition.value(), self.ui.yPosition.value()])
+            array.rotation = self.ui.rotation.value()
+            
+            array.create_array()
+            array.set_steering_angle(self.ui.steeringAngle.value())
+
+            freqs = []
+            for i in range(self.ui.frequencyList.count()):
+                freq_text = self.ui.frequencyList.item(i).text()
+                freq = float(freq_text.split()[0])
+                freqs.append(freq)
+            
+            if freqs:
+                for element in array.elements:
+                    element.frequencies = freqs
+
     def update_simulation(self):
-        self.plot_widget.update_plots(self.arrays)
+        self.field_plot.update_plot(self.arrays)
+        self.polar_plot.update_plot(self.arrays)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
