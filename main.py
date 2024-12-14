@@ -168,7 +168,7 @@ class MainWindow(QMainWindow):
             self.arrays.pop(current_row)
             self.ui.arrayList.takeItem(current_row)
             self.update_simulation()
-
+    
     def on_array_selected(self, index):
         self.block = True
         if index >= 0 and index < len(self.arrays):
@@ -191,12 +191,25 @@ class MainWindow(QMainWindow):
             freq *= 1000
         elif unit == 'MHz':
             freq *= 1000000
-        self.ui.frequencyList.addItem(f"{freq} Hz")
+        phase = self.ui.phaseInput.value()
+        amplitude = self.ui.amplitudeInput.value()
+        current_row = self.ui.arrayList.currentRow()
+        if current_row >= 0 and current_row < len(self.arrays):
+            array = self.arrays[current_row]
+            for element in array.elements:
+                element.add_frequency_component(freq, phase, amplitude)
+            self.update_simulation()
+
 
     def remove_frequency(self):
         current_row = self.ui.frequencyList.currentRow()
         if current_row >= 0:
-            self.ui.frequencyList.takeItem(current_row)
+            current_array = self.ui.arrayList.currentRow()
+            if current_array >= 0 and current_array < len(self.arrays):
+                array = self.arrays[current_array]
+                for element in array.elements:
+                    element.remove_frequency_component(current_row)
+                self.update_simulation()
 
     def update_selected_array(self):
         if self.block:
@@ -214,23 +227,34 @@ class MainWindow(QMainWindow):
             array.create_array()
             array.set_steering_angle(self.ui.steeringAngle.value())
 
-            freqs = []
-            for i in range(self.ui.frequencyList.count()):
-                freq_text = self.ui.frequencyList.item(i).text()
-                freq = float(freq_text.split()[0])
-                freqs.append(freq)
+            # freqs = []
+            # for i in range(self.ui.frequencyList.count()):
+            #     freq_text = self.ui.frequencyList.item(i).text()
+            #     freq = float(freq_text.split()[0])
+            #     freqs.append(freq)
             
-            if freqs:
-                for element in array.elements:
-                    element.frequencies = freqs
+            # if freqs:
+            #     for element in array.elements:
+            #         element.frequencies = freqs
             self.update_simulation()
 
     def update_simulation(self):
         self.field_plot.update_plot(self.arrays)
         self.polar_plot.update_plot(self.arrays)
+        self.ui.frequencyList.clear()
+        current_row = self.ui.arrayList.currentRow()
+        if current_row >= 0 and current_row < len(self.arrays):
+            array = self.arrays[current_row]
+            for comp in array.elements[0].components:
+                amplitude = comp.amplitude
+                frequency = comp.frequency
+                phase = comp.phase_shift
+                equation = f"{amplitude:.2f}*sin(2π*{frequency}t + {phase:.2f}°)"
+                self.ui.frequencyList.addItem(equation)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec_())

@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from ArrayElement import ArrayElement
+
+
 class Array:
     def __init__(self, center=(0,0), num_elements=8, radius=1.0, curvature=0.0, rotation=0.0):
         self.center = np.array(center)
@@ -42,7 +44,9 @@ class Array:
     
     def set_steering_angle(self, angle):
         self.steering_angle = angle
-        k = 2 * np.pi * self.elements[0].frequency / 343.0
         d = self.radius / (self.num_elements - 1)
         for i, element in enumerate(self.elements):
-            element.phase_shift = -k * d * i * np.sin(np.radians(angle))
+            for comp in element.components:
+                k = 2 * np.pi * comp.frequency / element.speed
+                comp.phase_shift = -k * d * i * np.sin(np.radians(angle))
+

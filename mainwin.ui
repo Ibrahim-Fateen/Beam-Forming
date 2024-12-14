@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1200</width>
-    <height>913</height>
+    <width>1385</width>
+    <height>998</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -2118,7 +2118,7 @@ QSint--ActionGroup QToolButton[class=&quot;action&quot;]:on {
         <item>
          <widget class="QGroupBox" name="frequencyListGroup">
           <property name="title">
-           <string>Frequencies</string>
+           <string>Frequency components</string>
           </property>
           <layout class="QVBoxLayout" name="frequencyListLayout">
            <item>
@@ -2126,6 +2126,13 @@ QSint--ActionGroup QToolButton[class=&quot;action&quot;]:on {
            </item>
            <item>
             <layout class="QHBoxLayout" name="frequencyControlLayout">
+             <item>
+              <widget class="QLabel" name="label_5">
+               <property name="text">
+                <string>Frequency</string>
+               </property>
+              </widget>
+             </item>
              <item>
               <widget class="QSpinBox" name="frequencyInput">
                <property name="minimumSize">
@@ -2165,23 +2172,62 @@ QSint--ActionGroup QToolButton[class=&quot;action&quot;]:on {
                  <height>16777215</height>
                 </size>
                </property>
-               <item>
-                <property name="text">
-                 <string>Hz</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>MHz</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>GHz</string>
-                </property>
-               </item>
               </widget>
              </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_3">
+             <property name="bottomMargin">
+              <number>10</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="label_3">
+               <property name="text">
+                <string>Amplitude</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="amplitudeInput">
+               <property name="minimumSize">
+                <size>
+                 <width>88</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>30</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="value">
+                <number>1</number>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>Phase</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="phaseInput">
+               <property name="minimum">
+                <number>-180</number>
+               </property>
+               <property name="maximum">
+                <number>180</number>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_2">
              <item>
               <widget class="QPushButton" name="addFrequencyButton">
                <property name="text">
@@ -2255,7 +2301,7 @@ QSint--ActionGroup QToolButton[class=&quot;action&quot;]:on {
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1200</width>
+     <width>1385</width>
      <height>26</height>
     </rect>
    </property>
