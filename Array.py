@@ -73,5 +73,5 @@ class Array:
         angle = np.degrees(np.arctan2(targety - self.center[1], targetx - self.center[0]))
         angle -=90
         self.set_steering_angle(angle)
-        print("steering angle :" , angle)
+        # print("steering angle :" , angle)
 

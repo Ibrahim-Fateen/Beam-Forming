@@ -13,7 +13,19 @@ from mainwin import Ui_MainWindow
 from InterferenceMap import FieldPlotWidget
 from BeamPattern import PolarPlotWidget
 import os
+import logging
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/app.log'),
+        logging.StreamHandler()
+    ]
+)
 
+# Create logger instance
+logger = logging.getLogger('beam_forming')
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -29,6 +41,7 @@ class MainWindow(QMainWindow):
         # self.timer.start(100)
 
     def setup_plots(self):
+        logger.info('Setting up plots...')
         self.field_plot = FieldPlotWidget()
         beam_layout = QVBoxLayout(self.ui.beamPatternTab)
         beam_layout.addWidget(self.field_plot)
@@ -38,6 +51,7 @@ class MainWindow(QMainWindow):
         interference_layout.addWidget(self.polar_plot)
 
     def setup_controls(self):
+        logger.info('Setting up controls...')
         self.ui.addArrayButton.clicked.connect(self.add_array)
         self.ui.removeArrayButton.clicked.connect(self.remove_array)
         self.ui.arrayList.currentRowChanged.connect(lambda index: self.on_array_selected(index))
@@ -65,6 +79,7 @@ class MainWindow(QMainWindow):
 
     def save_scenario(self):
         try:
+            logger.info('Saving scenario...')
             options = QFileDialog.Options()
             file_name, _ = QFileDialog.getSaveFileName(self, "Save Scenario", "scenarios/",
                                                        "JSON Files (*.json);;All Files (*)", options=options)
@@ -97,12 +112,14 @@ class MainWindow(QMainWindow):
                 }
                 with open(file_name, 'w') as file:
                     json.dump(scenario, file, indent=4)
-                print("Scenario saved successfully.")
+                # print("Scenario saved successfully.")
                 self.populate_scenario_select()
         except Exception as e:
+            logger.error(f"An error occurred while saving the scenario: {e}")
             print(f"An error occurred while saving the scenario: {e}")
 
     def load_scenario_from_device(self):
+        logger.info('Loading scenario...')
         options = QFileDialog.Options()
         file_name, _ = QFileDialog.getOpenFileName(self, "Load Scenario", "", "JSON Files (*.json);;All Files (*)",
                                                    options=options)
@@ -133,6 +150,7 @@ class MainWindow(QMainWindow):
                 self.update_simulation()
 
     def load_selected_scenario(self, index):
+        logger.info('Loading selected scenario...')
         file_name = self.ui.scenarioSelect.currentText()
         if file_name:
             file_path = os.path.join("scenarios", file_name)
@@ -162,6 +180,7 @@ class MainWindow(QMainWindow):
                 self.update_simulation()
 
     def populate_scenario_select(self):
+        logger.info('Populating scenario select...')
         current_selection = self.ui.scenarioSelect.currentText()
         self.ui.scenarioSelect.blockSignals(True)
         self.ui.scenarioSelect.clear()
@@ -178,6 +197,7 @@ class MainWindow(QMainWindow):
         self.ui.scenarioSelect.blockSignals(False)
 
     def add_array(self):
+        logger.info('Adding array...')
         array = Array()
         self.arrays.append(array)
         self.ui.arrayList.addItem(f"Array {len(self.arrays)}")
@@ -186,6 +206,7 @@ class MainWindow(QMainWindow):
         self.update_simulation()
 
     def remove_array(self):
+        logger.info('Removing array...')
         current_row = self.ui.arrayList.currentRow()
         if current_row >= 0:
             self.arrays.pop(current_row)
@@ -193,6 +214,7 @@ class MainWindow(QMainWindow):
             self.update_simulation()
     
     def on_array_selected(self, index):
+        logger.info(f'Array of index {index} selected...')
         self.block = True
         if index >= 0 and index < len(self.arrays):
             # print(index)
@@ -210,6 +232,7 @@ class MainWindow(QMainWindow):
 
 
     def add_frequency(self):
+        logger.info('Adding frequency...')
         freq = self.ui.frequencyInput.value()
         unit = self.ui.comboBox_2.currentText()
         if unit == 'kHz':
@@ -232,6 +255,7 @@ class MainWindow(QMainWindow):
 
 
     def remove_frequency(self):
+        logger.info('Removing frequency...')
         current_row = self.ui.frequencyList.currentRow()
         if current_row >= 0:
             current_array = self.ui.arrayList.currentRow()
@@ -244,6 +268,7 @@ class MainWindow(QMainWindow):
     def update_selected_array(self):
         if self.block:
             return
+        # logger.info('Updating selected array...')
         current_row = self.ui.arrayList.currentRow()
         if current_row >= 0 and current_row < len(self.arrays):
             array = self.arrays[current_row]
@@ -260,6 +285,7 @@ class MainWindow(QMainWindow):
             self.update_simulation()
 
     def update_simulation(self):
+        # logger.info('Updating simulation...')
         selected_array = self.ui.arrayList.currentRow()
         self.block = True
         if self.ui.follow_target_checkBox.isChecked():
