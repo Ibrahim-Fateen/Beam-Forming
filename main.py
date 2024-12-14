@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from Array import Array
+from ArrayElement import FrequencyComponent
 from mainwin import Ui_MainWindow
 from InterferenceMap import FieldPlotWidget
 from BeamPattern import PolarPlotWidget
@@ -77,10 +78,22 @@ class MainWindow(QMainWindow):
                             "curvature": array.curvature,
                             "rotation": array.rotation,
                             "steering_angle": array.steering_angle,
-                            "frequencies": [element.frequencies for element in array.elements]
+                            "frequencies": [
+                                {
+                                 "frequency":comp.frequency,
+                                 "phase_shift":comp.phase,
+                                 "amplitude":comp.amplitude
+                                } 
+                                for comp in array.elements[0].components
+                            ]
                         }
                         for array in self.arrays
-                    ]
+                    ],
+                    "target": {
+                        "x": self.ui.xPosition_target.value(),
+                        "y": self.ui.yPosition_target.value()
+                    },
+                    "follow_target": self.ui.follow_target_checkBox.isChecked()
                 }
                 with open(file_name, 'w') as file:
                     json.dump(scenario, file, indent=4)
@@ -107,12 +120,16 @@ class MainWindow(QMainWindow):
                         rotation=array_data["rotation"]
                     )
                     array.set_steering_angle(array_data["steering_angle"])
-                    for element, freqs in zip(array.elements, array_data["frequencies"]):
-                        element.frequencies = freqs
+                    for element in array.elements:
+                        components = [FrequencyComponent(**comp) for comp in array_data["frequencies"]]
+                        element.components = components
                     self.arrays.append(array)
                     self.ui.arrayList.addItem(f"Array {len(self.arrays)}")
                 if self.arrays:
                     self.ui.arrayList.setCurrentRow(0)
+                self.ui.xPosition_target.setValue(scenario["target"]["x"])
+                self.ui.yPosition_target.setValue(scenario["target"]["y"])
+                self.ui.follow_target_checkBox.setChecked(scenario["follow_target"])
                 self.update_simulation()
 
     def load_selected_scenario(self, index):
@@ -132,12 +149,16 @@ class MainWindow(QMainWindow):
                         rotation=array_data["rotation"]
                     )
                     array.set_steering_angle(array_data["steering_angle"])
-                    for element, freqs in zip(array.elements, array_data["frequencies"]):
-                        element.frequencies = freqs
+                    for element in array.elements:
+                        components = [FrequencyComponent(**comp) for comp in array_data["frequencies"]]
+                        element.components = components
                     self.arrays.append(array)
                     self.ui.arrayList.addItem(f"Array {len(self.arrays)}")
                 if self.arrays:
                     self.ui.arrayList.setCurrentRow(0)
+                self.ui.xPosition_target.setValue(scenario["target"]["x"])
+                self.ui.yPosition_target.setValue(scenario["target"]["y"])
+                self.ui.follow_target_checkBox.setChecked(scenario["follow_target"])
                 self.update_simulation()
 
     def populate_scenario_select(self):
@@ -176,7 +197,7 @@ class MainWindow(QMainWindow):
         if index >= 0 and index < len(self.arrays):
             # print(index)
             array = self.arrays[index]
-            self.ui.steeringAngle.setValue(array.steering_angle)
+            self.ui.steeringAngle.setValue(int(array.steering_angle))
             self.ui.numElements.setValue(array.num_elements)
             self.ui.elementSpacing.setValue(array.radius / max(1, array.num_elements - 1))
             self.ui.curvature.setValue(array.curvature)
@@ -239,26 +260,29 @@ class MainWindow(QMainWindow):
             self.update_simulation()
 
     def update_simulation(self):
-        self.block= True
         selected_array = self.ui.arrayList.currentRow()
+        self.block = True
         if self.ui.follow_target_checkBox.isChecked():
             self.ui.xPosition_target.setDisabled(False)
             self.ui.yPosition_target.setDisabled(False)
-            array = self.arrays[selected_array]
-            array.set_steering_target(targetx = self.ui.xPosition_target.value(), targety = self.ui.yPosition_target.value())
+            if selected_array >= 0 and selected_array < len(self.arrays):
+                array = self.arrays[selected_array]
+                array.set_steering_target(targetx=self.ui.xPosition_target.value(), targety=self.ui.yPosition_target.value())
             self.ui.steeringAngle.setDisabled(True)
         else:
             self.ui.xPosition_target.setDisabled(True)
             self.ui.yPosition_target.setDisabled(True)
             self.ui.steeringAngle.setDisabled(False)
-            array = self.arrays[selected_array]
-            array.set_steering_angle(self.ui.steeringAngle.value())
+            if selected_array >= 0 and selected_array < len(self.arrays):
+                array = self.arrays[selected_array]
+                array.set_steering_angle(self.ui.steeringAngle.value())
         self.block = False
-        self.field_plot.update_plot(self.arrays)
+        if self.ui.plotTabs.currentIndex() == 0:
+            self.field_plot.update_plot(self.arrays)
         if self.ui.follow_target_checkBox.isChecked():
             self.field_plot.plot_target_point(self.ui.xPosition_target.value(), self.ui.yPosition_target.value())
 
-        if selected_array >= 0 and selected_array < len(self.arrays):
+        if selected_array >= 0 and selected_array < len(self.arrays) and self.ui.plotTabs.currentIndex() == 1:
             self.polar_plot.update_plot(self.arrays[selected_array])
         self.ui.frequencyList.clear()
         current_row = self.ui.arrayList.currentRow()
