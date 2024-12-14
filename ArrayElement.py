@@ -18,6 +18,7 @@ class ArrayElement:
         self.components = components if components is not None else [FrequencyComponent(1000)]
         
     def add_frequency_component(self, frequency, phase_shift=0, amplitude=1.0):
+        
         self.components.append(FrequencyComponent(frequency, phase_shift, amplitude))
     
     def remove_frequency_component(self, index): 
@@ -29,6 +30,6 @@ class ArrayElement:
         
         for comp in self.components:
             k = 2 * np.pi * comp.frequency / self.speed
-            total_field += comp.amplitude * np.exp(1j * (k * distance + comp.phase_shift + self.phase_shift))
+            total_field += comp.amplitude * np.exp(1j * (k * distance + comp.phase_shift))
             
         return total_field / max(distance, 0.1)

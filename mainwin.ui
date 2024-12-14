@@ -2254,6 +2254,12 @@ QSint--ActionGroup QToolButton[class=&quot;action&quot;]:on {
    </widget>
   </widget>
   <widget class="QDockWidget" name="scenarioManagerDock">
+   <property name="maximumSize">
+    <size>
+     <width>524287</width>
+     <height>200</height>
+    </size>
+   </property>
    <property name="windowTitle">
     <string>Scenario Manager</string>
    </property>

@@ -181,7 +181,9 @@ class MainWindow(QMainWindow):
             self.ui.xPosition.setValue(array.center[0])
             self.ui.yPosition.setValue(array.center[1])
             self.ui.rotation.setValue(int(array.rotation))
+            self.ui.steeringValue.setText(f"{array.steering_angle}")
         self.block = False
+        self.update_simulation()
 
 
     def add_frequency(self):
@@ -196,8 +198,13 @@ class MainWindow(QMainWindow):
         current_row = self.ui.arrayList.currentRow()
         if current_row >= 0 and current_row < len(self.arrays):
             array = self.arrays[current_row]
+            self.block = True
+            temp = self.ui.steeringAngle.value()
+            array.set_steering_angle(0)
             for element in array.elements:
                 element.add_frequency_component(freq, phase, amplitude)
+            array.set_steering_angle(temp)
+            self.block = False
             self.update_simulation()
 
 
@@ -224,9 +231,9 @@ class MainWindow(QMainWindow):
             array.center = np.array([self.ui.xPosition.value(), self.ui.yPosition.value()])
             array.rotation = self.ui.rotation.value()
             
-            array.create_array()
+            array.update_elements_postion()
             array.set_steering_angle(self.ui.steeringAngle.value())
-
+            self.ui.steeringValue.setText(f"{array.steering_angle}")
             # freqs = []
             # for i in range(self.ui.frequencyList.count()):
             #     freq_text = self.ui.frequencyList.item(i).text()
@@ -239,8 +246,9 @@ class MainWindow(QMainWindow):
             self.update_simulation()
 
     def update_simulation(self):
+        selected_array = self.ui.arrayList.currentRow()
         self.field_plot.update_plot(self.arrays)
-        self.polar_plot.update_plot(self.arrays)
+        self.polar_plot.update_plot(self.arrays[selected_array])
         self.ui.frequencyList.clear()
         current_row = self.ui.arrayList.currentRow()
         if current_row >= 0 and current_row < len(self.arrays):

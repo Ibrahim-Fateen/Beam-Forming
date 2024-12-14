@@ -22,19 +22,19 @@ class PolarPlotWidget(QWidget):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
         
-    def update_plot(self, arrays):
+    def update_plot(self, array):
         self.ax_polar.clear()
         
         # Polar beam pattern plot
         theta = np.linspace(0, np.pi, 30)
         pattern = np.zeros_like(theta, dtype=complex)
         
-        for array in arrays:
-            r = 2.0
-            for angle, i in zip(theta, range(len(theta))):
-                point = r * np.array([np.cos(angle), np.sin(angle)])
-                for element in array.elements:
-                    pattern[i] += element.calculate_field(point)
+        center = array.center
+        r = 2.0
+        for angle, i in zip(theta, range(len(theta))):
+            point = r * np.array([np.cos(angle), np.sin(angle)]) + center
+            for element in array.elements:
+                pattern[i] += element.calculate_field(point)
         
         epsilon = 1e-10
         pattern_db = 20 * np.log10(np.abs(pattern) + epsilon)

@@ -2018,6 +2018,7 @@ class Ui_MainWindow(object):
         self.arrayManagerDock.setWidget(self.arrayManagerContents)
         MainWindow.addDockWidget(QtCore.Qt.DockWidgetArea(1), self.arrayManagerDock)
         self.scenarioManagerDock = QtWidgets.QDockWidget(MainWindow)
+        self.scenarioManagerDock.setMaximumSize(QtCore.QSize(524287, 200))
         self.scenarioManagerDock.setObjectName("scenarioManagerDock")
         self.scenarioContents = QtWidgets.QWidget()
         self.scenarioContents.setObjectName("scenarioContents")
