@@ -48,7 +48,9 @@ class MainWindow(QMainWindow):
         self.ui.elementSpacing.valueChanged.connect(self.update_selected_array)
         self.ui.curvature.valueChanged.connect(self.update_selected_array)
         self.ui.steeringAngle.valueChanged.connect(self.update_selected_array)
-
+        self.ui.follow_target_checkBox.stateChanged.connect(self.update_simulation)
+        self.ui.xPosition_target.valueChanged.connect(self.update_simulation)
+        self.ui.yPosition_target.valueChanged.connect(self.update_simulation)
         self.ui.addFrequencyButton.clicked.connect(self.add_frequency)
         self.ui.removeFrequencyButton.clicked.connect(self.remove_frequency)
 
@@ -234,21 +236,30 @@ class MainWindow(QMainWindow):
             array.update_elements_postion()
             array.set_steering_angle(self.ui.steeringAngle.value())
             self.ui.steeringValue.setText(f"{array.steering_angle}")
-            # freqs = []
-            # for i in range(self.ui.frequencyList.count()):
-            #     freq_text = self.ui.frequencyList.item(i).text()
-            #     freq = float(freq_text.split()[0])
-            #     freqs.append(freq)
-            
-            # if freqs:
-            #     for element in array.elements:
-            #         element.frequencies = freqs
             self.update_simulation()
 
     def update_simulation(self):
+        self.block= True
         selected_array = self.ui.arrayList.currentRow()
+        if self.ui.follow_target_checkBox.isChecked():
+            self.ui.xPosition_target.setDisabled(False)
+            self.ui.yPosition_target.setDisabled(False)
+            array = self.arrays[selected_array]
+            array.set_steering_target(targetx = self.ui.xPosition_target.value(), targety = self.ui.yPosition_target.value())
+            self.ui.steeringAngle.setDisabled(True)
+        else:
+            self.ui.xPosition_target.setDisabled(True)
+            self.ui.yPosition_target.setDisabled(True)
+            self.ui.steeringAngle.setDisabled(False)
+            array = self.arrays[selected_array]
+            array.set_steering_angle(self.ui.steeringAngle.value())
+        self.block = False
         self.field_plot.update_plot(self.arrays)
-        self.polar_plot.update_plot(self.arrays[selected_array])
+        if self.ui.follow_target_checkBox.isChecked():
+            self.field_plot.plot_target_point(self.ui.xPosition_target.value(), self.ui.yPosition_target.value())
+
+        if selected_array >= 0 and selected_array < len(self.arrays):
+            self.polar_plot.update_plot(self.arrays[selected_array])
         self.ui.frequencyList.clear()
         current_row = self.ui.arrayList.currentRow()
         if current_row >= 0 and current_row < len(self.arrays):
@@ -256,9 +267,10 @@ class MainWindow(QMainWindow):
             for comp in array.elements[0].components:
                 amplitude = comp.amplitude
                 frequency = comp.frequency
-                phase = comp.phase_shift
+                phase = comp.phase
                 equation = f"{amplitude:.2f}*sin(2π*{frequency}t + {phase:.2f}°)"
                 self.ui.frequencyList.addItem(equation)
+  
 
 
 if __name__ == '__main__':

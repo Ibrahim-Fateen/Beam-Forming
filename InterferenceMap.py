@@ -11,6 +11,7 @@ class FieldPlotWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_ui()
+        self.color = np.random.rand(3,)
         
     def setup_ui(self):
         layout = QVBoxLayout()
@@ -40,4 +41,9 @@ class FieldPlotWidget(QWidget):
         self.ax_field.set_title('Field Intensity')
         self.ax_field.set_aspect('equal')
         self.figure.tight_layout()
+        self.canvas.draw()
+        # self.plot_target_point(3,3)
+
+    def plot_target_point(self,x,y):
+        self.ax_field.plot(x, y, 'ro', color=self.color)
         self.canvas.draw()

@@ -60,12 +60,18 @@ class Array:
                 element.position = rotated_pos
 
     def set_steering_angle(self, angle):
-        angle_diff = angle - self.steering_angle  # Calculate angle difference
         self.steering_angle = angle
+        angle -= self.rotation
         d = self.radius / (self.num_elements - 1)
         for i, element in enumerate(self.elements):
             for comp in element.components:
                 k = 2 * np.pi * comp.frequency / element.speed
                 # Add new phase shift to existing one
-                comp.phase_shift += -k * d * i * np.sin(np.radians(angle_diff))
+                comp.phase_shift = -k * d * i * np.sin(np.radians(angle))
+    
+    def set_steering_target(self,targetx,targety):
+        angle = np.degrees(np.arctan2(targety - self.center[1], targetx - self.center[0]))
+        angle -=90
+        self.set_steering_angle(angle)
+        print("steering angle :" , angle)
 

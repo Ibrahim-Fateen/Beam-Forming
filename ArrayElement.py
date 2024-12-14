@@ -6,8 +6,9 @@ from PyQt5.QtWidgets import *
 class FrequencyComponent:
     def __init__(self, frequency, phase_shift=0, amplitude=1.0):
         self.frequency = frequency
-        self.phase_shift = phase_shift
+        self.phase_shift = 0
         self.amplitude = amplitude
+        self.phase = phase_shift
 
 class ArrayElement:
     def __init__(self, position,phase_shift = 0, components=None , wave_type = 'acoustic'):
@@ -30,6 +31,6 @@ class ArrayElement:
         
         for comp in self.components:
             k = 2 * np.pi * comp.frequency / self.speed
-            total_field += comp.amplitude * np.exp(1j * (k * distance + comp.phase_shift))
+            total_field += comp.amplitude * np.exp(1j * (k * distance + comp.phase_shift + comp.phase))
             
         return total_field / max(distance, 0.1)
