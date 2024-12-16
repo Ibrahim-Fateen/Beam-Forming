@@ -3,12 +3,8 @@ import sys
 import numpy as np
 from PyQt5.QtWidgets import *
 from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtCore import QTimer
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
 from Array import Array
-from ArrayElement import FrequencyComponent
+
 from mainwin import Ui_MainWindow
 from InterferenceMap import FieldPlotWidget
 from BeamPattern import PolarPlotWidget
@@ -68,7 +64,8 @@ class MainWindow(QMainWindow):
         self.ui.yPosition_target.valueChanged.connect(self.update_simulation)
         self.ui.addFrequencyButton.clicked.connect(self.add_frequency)
         self.ui.removeFrequencyButton.clicked.connect(self.remove_frequency)
-
+        self.ui.plotTabs.currentChanged.connect(self.update_simulation)
+        self.ui.comboBox.currentIndexChanged.connect(self.update_selected_array)
         self.ui.comboBox_2.addItems(['Hz', 'kHz', 'MHz'])
 
         self.ui.saveScenarioButton.clicked.connect(self.save_scenario)
@@ -89,7 +86,7 @@ class MainWindow(QMainWindow):
                         {
                             "center": array.center.tolist(),
                             "num_elements": array.num_elements,
-                            "radius": array.radius,
+                            "spacing": array.spacing,
                             "curvature": array.curvature,
                             "rotation": array.rotation,
                             "steering_angle": array.steering_angle,
@@ -132,7 +129,7 @@ class MainWindow(QMainWindow):
                     array = Array(
                         center=array_data["center"],
                         num_elements=array_data["num_elements"],
-                        radius=array_data["radius"],
+                        spacing=array_data["spacing"],
                         curvature=array_data["curvature"],
                         rotation=array_data["rotation"]
                     )
@@ -162,7 +159,7 @@ class MainWindow(QMainWindow):
                     array = Array(
                         center=array_data["center"],
                         num_elements=array_data["num_elements"],
-                        radius=array_data["radius"],
+                        spacing=array_data["spacing"],
                         curvature=array_data["curvature"],
                         rotation=array_data["rotation"]
                     )
@@ -198,12 +195,13 @@ class MainWindow(QMainWindow):
 
     def add_array(self):
         logger.info('Adding array...')
-        array = Array()
+        array = Array(type=self.ui.comboBox.currentText().lower())
         self.arrays.append(array)
-        self.ui.arrayList.addItem(f"Array {len(self.arrays)}")
+        name = f"Array {len(self.arrays)}"
+        self.ui.arrayList.addItem(name)
         if len(self.arrays) == 1:
             self.ui.arrayList.setCurrentRow(0)
-        self.update_simulation()
+        self.update_selected_array()
 
     def remove_array(self):
         logger.info('Removing array...')
@@ -221,7 +219,7 @@ class MainWindow(QMainWindow):
             array = self.arrays[index]
             self.ui.steeringAngle.setValue(int(array.steering_angle))
             self.ui.numElements.setValue(array.num_elements)
-            self.ui.elementSpacing.setValue(array.radius / max(1, array.num_elements - 1))
+            self.ui.elementSpacing.setValue(array.spacing)
             self.ui.curvature.setValue(array.curvature)
             self.ui.xPosition.setValue(array.center[0])
             self.ui.yPosition.setValue(array.center[1])
@@ -243,12 +241,11 @@ class MainWindow(QMainWindow):
         amplitude = self.ui.amplitudeInput.value()
         current_row = self.ui.arrayList.currentRow()
         if current_row >= 0 and current_row < len(self.arrays):
-            array = self.arrays[current_row]
+            array:Array = self.arrays[current_row]
             self.block = True
             temp = self.ui.steeringAngle.value()
             array.set_steering_angle(0)
-            for element in array.elements:
-                element.add_frequency_component(freq, phase, amplitude)
+            array.add_frequency_component(freq, phase, amplitude)
             array.set_steering_angle(temp)
             self.block = False
             self.update_simulation()
@@ -261,8 +258,7 @@ class MainWindow(QMainWindow):
             current_array = self.ui.arrayList.currentRow()
             if current_array >= 0 and current_array < len(self.arrays):
                 array = self.arrays[current_array]
-                for element in array.elements:
-                    element.remove_frequency_component(current_row)
+                array.remove_frequency_component(current_row)
                 self.update_simulation()
 
     def update_selected_array(self):
@@ -273,13 +269,13 @@ class MainWindow(QMainWindow):
         if current_row >= 0 and current_row < len(self.arrays):
             array = self.arrays[current_row]
             array.num_elements = self.ui.numElements.value()
-            array.radius = self.ui.elementSpacing.value() * (array.num_elements - 1)
+            array.spacing = self.ui.elementSpacing.value()
             array.curvature = self.ui.curvature.value()
             
             array.center = np.array([self.ui.xPosition.value(), self.ui.yPosition.value()])
             array.rotation = self.ui.rotation.value()
-            
-            array.update_elements_postion()
+            array.type = self.ui.comboBox.currentText().lower()
+            # array.update_elements_postion()
             array.set_steering_angle(self.ui.steeringAngle.value())
             self.ui.steeringValue.setText(f"{array.steering_angle}")
             self.update_simulation()
@@ -291,8 +287,7 @@ class MainWindow(QMainWindow):
         if self.ui.follow_target_checkBox.isChecked():
             self.ui.xPosition_target.setDisabled(False)
             self.ui.yPosition_target.setDisabled(False)
-            if selected_array >= 0 and selected_array < len(self.arrays):
-                array = self.arrays[selected_array]
+            for array in self.arrays:
                 array.set_steering_target(targetx=self.ui.xPosition_target.value(), targety=self.ui.yPosition_target.value())
             self.ui.steeringAngle.setDisabled(True)
         else:
@@ -314,12 +309,23 @@ class MainWindow(QMainWindow):
         current_row = self.ui.arrayList.currentRow()
         if current_row >= 0 and current_row < len(self.arrays):
             array = self.arrays[current_row]
-            for comp in array.elements[0].components:
+            for comp in array.components:
                 amplitude = comp.amplitude
                 frequency = comp.frequency
                 phase = comp.phase
                 equation = f"{amplitude:.2f}*sin(2π*{frequency}t + {phase:.2f}°)"
                 self.ui.frequencyList.addItem(equation)
+        if len(self.arrays) == 0:return
+
+        array:Array = self.arrays[0 if len(self.arrays) == selected_array else selected_array]
+        logger.info(f"Selected array data:\n"
+               f"Center: {array.center}\n"
+               f"Number of elements: {array.num_elements}\n"
+               f"Spacing: {array.spacing}\n"
+               f"Curvature: {array.curvature}\n"
+               f"Rotation: {array.rotation}\n"
+               f"Steering angle: {array.steering_angle}\n"
+               f"Array speed: {array.c}")
   
 
 

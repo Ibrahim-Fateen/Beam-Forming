@@ -1,77 +1,76 @@
-import sys
+
 import numpy as np
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt, QTimer
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
-from ArrayElement import ArrayElement
 
+class FrequencyComponent:
+    def __init__(self, frequency=1000, phase=0, amplitude=1.0):
+        self.frequency = frequency  # Hz
+        self.phase = phase  # radians
+        self.amplitude = amplitude
 
 class Array:
-    def __init__(self, center=(0,0), num_elements=8, radius=1.0, curvature=0.0, rotation=0.0):
-        self.center = np.array(center)
+    def __init__(self, num_elements=8, spacing=0.5,center=(0,0) ,curvature=0.0, rotation=0.0, components=None,type = 'acoustic'):
         self.num_elements = num_elements
-        self.radius = radius
+        self.spacing = spacing  # wavelengths
+        self.steering_angle = 0  # degrees
+        self.components = components if components is not None else [FrequencyComponent()]
+        self.center = np.array(center)
         self.curvature = curvature
         self.rotation = rotation
-        self.elements = []
-        self.steering_angle = 0
-        self.create_array()
-        
-    def rotate_point(self, point, angle_deg):
-        angle_rad = np.radians(angle_deg)
-        rotation_matrix = np.array([
-            [np.cos(angle_rad), -np.sin(angle_rad)],
-            [np.sin(angle_rad), np.cos(angle_rad)]
-        ])
-        return np.dot(rotation_matrix, point - self.center) + self.center
-        
-    def create_array(self):
-        self.elements.clear()
-        if self.curvature == 0.0:  # linear array
-            spacing = self.radius / max(1, self.num_elements - 1)
-            for i in range(self.num_elements):
-                base_pos = self.center + np.array([-self.radius/2 + i*spacing, 0])
-                rotated_pos = self.rotate_point(base_pos, self.rotation)
-                self.elements.append(ArrayElement(rotated_pos))
-        else:  # curved array
-            for i in range(self.num_elements):
-                angle = -(i / (self.num_elements - 1)) * np.pi * self.curvature
-                base_pos = self.center + self.radius * np.array([np.cos(angle), np.sin(angle)])
-                rotated_pos = self.rotate_point(base_pos, self.rotation)
-                self.elements.append(ArrayElement(rotated_pos))
-                
-    def update_elements_postion(self):
-        if self.curvature == 0.0:  # linear array
-            spacing = self.radius / max(1, self.num_elements - 1)
-            for i, element in enumerate(self.elements):
-                base_pos = self.center + np.array([-self.radius/2 + i*spacing, 0])
-                rotated_pos = self.rotate_point(base_pos, self.rotation)
-                element.position = rotated_pos
-        else:  # curved array
-            spacing = self.radius / max(1, self.num_elements - 1)
-            for i, element in enumerate(self.elements):
-                x = -self.radius/2 + i*spacing
-                # Calculate y using a parabolic curve
-                y = self.curvature * (x * x) / (self.radius)
-                base_pos = self.center + np.array([x, y])
-                rotated_pos = self.rotate_point(base_pos, self.rotation)
-                element.position = rotated_pos
-
+        self.c = 343.0 if type == 'acoustic' else 300000000.0
+    def add_frequency_component(self, frequency, phase=0, amplitude=1.0):
+        self.components.append(FrequencyComponent(frequency, phase, amplitude))
+    def remove_frequency_component(self, index):
+        self.components.pop(index)
+    def change_speed(self, type):
+        self.c = 343.0 if type == 'acoustic' else 300000000.0
     def set_steering_angle(self, angle):
         self.steering_angle = angle
-        angle -= self.rotation
-        d = self.radius / (self.num_elements - 1)
-        for i, element in enumerate(self.elements):
-            for comp in element.components:
-                k = 2 * np.pi * comp.frequency / element.speed
-                # Add new phase shift to existing one
-                comp.phase_shift = -k * d * i * np.sin(np.radians(angle))
-    
-    def set_steering_target(self,targetx,targety):
-        angle = np.degrees(np.arctan2(targety - self.center[1], targetx - self.center[0]))
-        angle -=90
-        self.set_steering_angle(angle)
-        # print("steering angle :" , angle)
+
+    def set_steering_target(self, targetx, targety):
+        angle = np.degrees(np.arctan2(targety-self.center[1],targetx-self.center[0]))
+        angle -= 90
+        angle *= -1
+        self.steering_angle = angle 
+        print(f"target degree : {self.steering_angle}")
+
+    def calculate_array_factor(self, theta):
+        af = np.zeros_like(theta, dtype=complex)
+        for comp in self.components:
+            k = 2 * np.pi * comp.frequency / self.c
+            d = self.spacing * self.c / comp.frequency
+            psi = k * d * (np.cos(theta) - np.cos(np.radians(self.steering_angle)))
+            component_af = np.zeros_like(theta, dtype=complex)
+            for n in range(self.num_elements):
+                component_af += comp.amplitude * np.exp(1j * (n * psi + comp.phase))
+            af += component_af
+        return 20 * np.log10(np.abs(af) / self.num_elements)
+
+    def calculate_field(self, x, y, is_decayed=True):
+        field = np.zeros((len(y), len(x)), dtype=complex)
+        for comp in self.components:
+            k = 2 * np.pi * comp.frequency / self.c
+            wavelength = self.c / comp.frequency
+            component_field = np.zeros_like(field)
+            # Calculate element positions considering center, curvature and rotation
+            for n in range(self.num_elements):
+                # Base position relative to center
+                x_offset = (n - (self.num_elements - 1)/2) * self.spacing * wavelength
+                y_offset = self.curvature * x_offset**2  # Apply curvature
+                # Apply rotation
+                rot_angle = np.radians(self.rotation)
+                x_n = self.center[0] + x_offset * np.cos(rot_angle) - y_offset * np.sin(rot_angle)
+                y_n = self.center[1] + x_offset * np.sin(rot_angle) + y_offset * np.cos(rot_angle)
+                X, Y = np.meshgrid(x - x_n, y - y_n)
+                R = np.sqrt(X**2 + Y**2)
+                phase = (k * R + 
+                        n * k * self.spacing * wavelength * np.sin(np.radians(self.steering_angle)) +
+                        comp.phase)
+                if is_decayed:
+                    component_field += comp.amplitude * np.exp(-1j * phase) / np.maximum(R, 0.1)
+                else:
+                    component_field += comp.amplitude * np.exp(-1j * phase)
+            field += component_field
+        return 20 * np.log10(np.abs(field))
+
 
