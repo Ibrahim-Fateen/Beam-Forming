@@ -30,8 +30,8 @@ class FieldPlotWidget(QWidget):
             self.figure.clear()
             self.canvas.draw()
             return
-        x = np.linspace(-6, 6, 200)
-        y = np.linspace(0, 10, 200)
+        x = np.linspace(-6, 6, 500)
+        y = np.linspace(0, 10, 500)
         field = arrays[0].calculate_field(x,y)
         for i, array in enumerate(arrays[1:], 1):
             field += array.calculate_field(x,y)
