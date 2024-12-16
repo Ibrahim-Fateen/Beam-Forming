@@ -34,7 +34,7 @@ class Array:
         self.steering_angle = angle 
         print(f"target degree : {self.steering_angle}")
 
-    def calculate_array_factor(self, theta):
+    def calculate_beam_pattern(self, theta):
         af = np.zeros_like(theta, dtype=complex)
         for comp in self.components:
             k = 2 * np.pi * comp.frequency / self.c

@@ -65,7 +65,7 @@ class PolarPlotWidget(QWidget):
     def update_plot(self,array:Array):
 
         theta = np.linspace(-np.pi, np.pi, 1000)
-        af = array.calculate_array_factor(theta)
+        af = array.calculate_beam_pattern(theta)
 
         self.ax.clear()
         af_norm = af - np.max(af)
