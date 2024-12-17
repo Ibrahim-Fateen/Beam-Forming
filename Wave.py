@@ -26,9 +26,6 @@ C (Wave Speed)= 3 * 10^8
         
     def remove_component(self, amplitude, frequency, phase):
         for component in self.components:
-            if amplitude==component.amplitude:
-                if frequency==component.frequency:
-                    if phase==component.phase:
-                        self.components.remove(component)    
-    
-        
+            if amplitude==component.amplitude and frequency==component.frequency:
+                self.components.remove(component)    
+       
