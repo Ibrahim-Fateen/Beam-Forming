@@ -23,6 +23,8 @@ Steering Angle should be provided in degrees
         
     def calc_array_factor(self):
         """
+    Array factor is the describtion of the interference map as the observation\n
+    angle sweeps from zero to 180.
     Array factor is a complex number and its magnitude is the beam Pattern\n
     General Array Factor Equation: SIGMA[0 -> N-1]
     (e^j(phi + k*S*n*cos(theta)))\n
@@ -38,7 +40,7 @@ Steering Angle should be provided in degrees
            phi_n = self.phase_vector[n]
            K = self.wave.wave_number
            S = self.S
-           theta_rad = self.steering_angle * PI / 180
+           theta_rad = np.radians(self.steering_angle)
            array_factor[n] = np.exp(1j*(phi_n + K*S*n*np.cos(theta_rad)))
            
         return np.sum(array_factor)    
@@ -52,5 +54,3 @@ Steering Angle should be provided in degrees
             phase_vector.append(i*delta_phase)
             
         return phase_vector      
-
-    
