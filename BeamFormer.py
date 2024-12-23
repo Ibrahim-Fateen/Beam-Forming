@@ -3,54 +3,49 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from Wave import EM_Wave
 from typing import List
+from scipy.integrate import quad
 
 PI = np.pi    
 class Array:
     """
-A an array of N linear Isotropic elements spaced by S.\n
+A an array of N linear Isotropic elements spaced by distance S.
+S is a function of the wavelength of the emitted wave. It should be a factor the wavelength\n
 Array Pattern = Array Factor * Element Pattern.\n
-Isotropic Element Pattern = 1\n
-Steering Angle should be provided in degrees   
+Steering Angle should be provided in degrees.\n
+Integration max subdivisions number controls the perfromance of the integration process to calculate the beam pattern 
+over the semi circle. A higher number means better accuracy but more computation power.   
     """
-    def __init__(self, wave:EM_Wave, N:int = 4, S:float = 0.5, steering_angle:float=90):
+    def __init__(self, wave:EM_Wave, S:float=0.5, N:int = 8, steering_angle:float=90, integration_max_subdivisions:int=150):
         self.N = N
-        self.S = S
         self.wave = wave
+        self.S = S * self.wave.wave_length
         self.steering_angle = steering_angle
-        self.phase_vector = self.calc_phase_vector()
-        self.array_factor = self.calc_array_factor()        
-        self.beam_pattern = np.abs(self.array_factor)
+        self.integration_max_subdivisions = integration_max_subdivisions
+        self.beam_pattern, self.integration_error = self.calc_beam_pattern()
+               
         
-    def calc_array_factor(self):
+    def calc_inst_beam_pattern(self, theta_obs):
         """
-    Array factor is the describtion of the interference map as the observation\n
-    angle sweeps from zero to 180.
-    Array factor is a complex number and its magnitude is the beam Pattern\n
-    General Array Factor Equation: SIGMA[0 -> N-1]
-    (e^j(phi + k*S*n*cos(theta)))\n
-    n = index of the curr element\n
-    phi = the applied phase for current element\n
-    K = wave number\n
-    S = Spacing between each two elements\n
-    theta = steering angle measured from the +ve x-axis
+General Instantenous Array Factor Formula: e^( jKSN * [cos(theta_obs)-sin(theta_steer)] )\n
+Beam Pattern = |Array Factor|       
         """
-        array_factor = np.zeros(self.N, dtype=complex)
+        array_factor_vector = np.zeros(self.N, dtype=complex)
+        steer_angle_rad = np.radians(self.steering_angle)
+        K = self.wave.wave_number
+        theta_obs_rad = np.radians(theta_obs)
         
         for n in range(self.N):
-           phi_n = self.phase_vector[n]
-           K = self.wave.wave_number
-           S = self.S
-           theta_rad = np.radians(self.steering_angle)
-           array_factor[n] = np.exp(1j*(phi_n + K*S*n*np.cos(theta_rad)))
-           
-        return np.sum(array_factor)    
-    
-    def calc_phase_vector(self):
-        phase_vector = []
-        steering_angle_rad = self.steering_angle * PI / 180
-        delta_phase = self.wave.wave_number * self.S * np.sin(steering_angle_rad)
+           array_factor_vector[n] =self.wave.amplitude* np.exp(1j* K* self.S* n* (np.cos(theta_obs_rad) - np.sin(steer_angle_rad)))
         
-        for i in range(self.N):
-            phase_vector.append(i*delta_phase)
-            
-        return phase_vector      
+        array_factor = np.sum(array_factor_vector)  
+        inst_beam_pattern = np.abs(array_factor)
+        
+        return inst_beam_pattern
+        
+    def calc_beam_pattern(self):
+        def integrand(theta_obs):
+            return self.calc_inst_beam_pattern(theta_obs)
+        
+        beam_pattern, integration_err =quad(integrand, a=0, b=180, limit=self.integration_max_subdivisions)
+        return beam_pattern, integration_err 
+    

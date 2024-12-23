@@ -28,4 +28,5 @@ C (Wave Speed)= 3 * 10^8
         for component in self.components:
             if amplitude==component.amplitude and frequency==component.frequency:
                 self.components.remove(component)    
+
        
