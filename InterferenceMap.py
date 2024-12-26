@@ -36,7 +36,7 @@ class FieldPlotWidget(QWidget):
         for i, array in enumerate(arrays[1:], 1):
             field += array.calculate_field(x,y)
         # Normalize field to be above 0
-        field = field - np.min(field)
+        # field = field - np.min(field)
 
         self.ax_field.clear()
         self.figure.clear()
