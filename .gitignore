@@ -1,5 +1,4 @@
 .idea/
-bodaVenv/
 .venv/
 __pycache__/
 .vs/

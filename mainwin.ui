@@ -1811,23 +1811,33 @@ QSint--ActionGroup QToolButton[class=&quot;action&quot;]:on {
 }</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_3">
+   <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QTabWidget" name="plotTabs">
-      <property name="currentIndex">
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <property name="spacing">
        <number>0</number>
       </property>
-      <widget class="QWidget" name="beamPatternTab">
-       <attribute name="title">
-        <string>Interference Map</string>
-       </attribute>
-      </widget>
-      <widget class="QWidget" name="interferenceMapTab">
-       <attribute name="title">
-        <string>Beam Pattern</string>
-       </attribute>
-      </widget>
-     </widget>
+      <item>
+       <widget class="QWidget" name="InterferenceMap" native="true">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>483</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QWidget" name="BeamProfile" native="true">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>483</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
@@ -1991,7 +2001,7 @@ QSint--ActionGroup QToolButton[class=&quot;action&quot;]:on {
         <item row="0" column="1">
          <widget class="QSpinBox" name="numElements">
           <property name="minimum">
-           <number>2</number>
+           <number>1</number>
           </property>
           <property name="maximum">
            <number>128</number>
@@ -2010,8 +2020,11 @@ QSint--ActionGroup QToolButton[class=&quot;action&quot;]:on {
         </item>
         <item row="1" column="1">
          <widget class="QDoubleSpinBox" name="elementSpacing">
+          <property name="decimals">
+           <number>10</number>
+          </property>
           <property name="minimum">
-           <double>0.010000000000000</double>
+           <double>0.000001000000000</double>
           </property>
           <property name="maximum">
            <double>10.000000000000000</double>
@@ -2112,6 +2125,12 @@ QSint--ActionGroup QToolButton[class=&quot;action&quot;]:on {
      <width>524287</width>
      <height>200</height>
     </size>
+   </property>
+   <property name="features">
+    <set>QDockWidget::AllDockWidgetFeatures</set>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::AllDockWidgetAreas</set>
    </property>
    <property name="windowTitle">
     <string>Scenario Manager</string>
@@ -2304,10 +2323,10 @@ QSint--ActionGroup QToolButton[class=&quot;action&quot;]:on {
                 <number>1</number>
                </property>
                <property name="maximum">
-                <number>1000</number>
+                <number>1000000000</number>
                </property>
                <property name="value">
-                <number>999</number>
+                <number>1000</number>
                </property>
               </widget>
              </item>
@@ -2354,6 +2373,12 @@ QSint--ActionGroup QToolButton[class=&quot;action&quot;]:on {
                  <width>30</width>
                  <height>16777215</height>
                 </size>
+               </property>
+               <property name="singleStep">
+                <number>1</number>
+               </property>
+               <property name="stepType">
+                <enum>QAbstractSpinBox::DefaultStepType</enum>
                </property>
                <property name="value">
                 <number>1</number>

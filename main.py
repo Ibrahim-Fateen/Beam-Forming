@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from PyQt5.QtWidgets import *
 from PyQt5.QtWidgets import QFileDialog
-from Array import Array
+from Array import Array, FrequencyComponent
 
 from mainwin import Ui_MainWindow
 from InterferenceMap import FieldPlotWidget
@@ -31,21 +31,21 @@ class MainWindow(QMainWindow):
         self.setup_plots()
         self.setup_controls()
         self.block = False
-        self.arrays = []
+        self.arrays:list[Array] = []
         # self.timer = QTimer()
         # self.timer.timeout.connect(self.update_simulation)
         # self.timer.start(100)
 
     def setup_plots(self):
         logger.info('Setting up plots...')
-        self.field_plot = FieldPlotWidget()
-        beam_layout = QVBoxLayout(self.ui.beamPatternTab)
-        beam_layout.addWidget(self.field_plot)
-
         self.polar_plot = PolarPlotWidget()
-        interference_layout = QVBoxLayout(self.ui.interferenceMapTab)
-        interference_layout.addWidget(self.polar_plot)
-
+        beam_layout = QVBoxLayout(self.ui.BeamProfile)
+        beam_layout.addWidget(self.polar_plot)
+        beam_layout.setContentsMargins(0, -5, 0, -5)
+        self.field_plot = FieldPlotWidget()
+        interference_layout = QVBoxLayout(self.ui.InterferenceMap)
+        interference_layout.addWidget(self.field_plot)
+        interference_layout.setContentsMargins(0, 0, 0, 0)
     def setup_controls(self):
         logger.info('Setting up controls...')
         self.ui.addArrayButton.clicked.connect(self.add_array)
@@ -64,14 +64,22 @@ class MainWindow(QMainWindow):
         self.ui.yPosition_target.valueChanged.connect(self.update_simulation)
         self.ui.addFrequencyButton.clicked.connect(self.add_frequency)
         self.ui.removeFrequencyButton.clicked.connect(self.remove_frequency)
-        self.ui.plotTabs.currentChanged.connect(self.update_simulation)
+        # self.ui.plotTabs.currentChanged.connect(self.update_simulation)
         self.ui.comboBox.currentIndexChanged.connect(self.update_selected_array)
+        self.ui.rotation.valueChanged.connect(self.update_selected_array)
         self.ui.comboBox_2.addItems(['Hz', 'kHz', 'MHz'])
 
         self.ui.saveScenarioButton.clicked.connect(self.save_scenario)
         self.ui.loadScenarioButton.clicked.connect(self.load_scenario_from_device)
 
-        self.ui.scenarioSelect.currentIndexChanged.connect(self.load_selected_scenario)
+        self.ui.scenarioSelect.activated.connect(self.load_selected_scenario)
+        self.ui.frequencyInput.valueChanged.connect(self.update_selected_frequency)
+        self.ui.phaseInput.valueChanged.connect(self.update_selected_frequency)
+        self.ui.amplitudeInput.valueChanged.connect(self.update_selected_frequency)
+        self.ui.frequencyList.currentRowChanged.connect(self.update_selected_frequency_ui)
+        self.ui.comboBox_2.currentIndexChanged.connect(self.update_selected_frequency)
+        # self.ui.frequencyList.currentRowChanged.connect(self.update_selected_frequency)
+
         self.populate_scenario_select()
 
     def save_scenario(self):
@@ -90,13 +98,14 @@ class MainWindow(QMainWindow):
                             "curvature": array.curvature,
                             "rotation": array.rotation,
                             "steering_angle": array.steering_angle,
+                            "type": array.type,
                             "frequencies": [
                                 {
                                  "frequency":comp.frequency,
-                                 "phase_shift":comp.phase,
+                                 "phase":comp.phase,
                                  "amplitude":comp.amplitude
                                 } 
-                                for comp in array.elements[0].components
+                                for comp in array.components
                             ]
                         }
                         for array in self.arrays
@@ -131,12 +140,12 @@ class MainWindow(QMainWindow):
                         num_elements=array_data["num_elements"],
                         spacing=array_data["spacing"],
                         curvature=array_data["curvature"],
-                        rotation=array_data["rotation"]
+                        rotation=array_data["rotation"],
+                        type=array_data["type"]
                     )
                     array.set_steering_angle(array_data["steering_angle"])
-                    for element in array.elements:
-                        components = [FrequencyComponent(**comp) for comp in array_data["frequencies"]]
-                        element.components = components
+                    components = [FrequencyComponent(**comp) for comp in array_data["frequencies"]]
+                    array.components = components
                     self.arrays.append(array)
                     self.ui.arrayList.addItem(f"Array {len(self.arrays)}")
                 if self.arrays:
@@ -144,7 +153,7 @@ class MainWindow(QMainWindow):
                 self.ui.xPosition_target.setValue(scenario["target"]["x"])
                 self.ui.yPosition_target.setValue(scenario["target"]["y"])
                 self.ui.follow_target_checkBox.setChecked(scenario["follow_target"])
-                self.update_simulation()
+                self.update_selected_array()
 
     def load_selected_scenario(self, index):
         logger.info('Loading selected scenario...')
@@ -161,12 +170,12 @@ class MainWindow(QMainWindow):
                         num_elements=array_data["num_elements"],
                         spacing=array_data["spacing"],
                         curvature=array_data["curvature"],
-                        rotation=array_data["rotation"]
+                        rotation=array_data["rotation"],
+                        type=array_data["type"]
                     )
                     array.set_steering_angle(array_data["steering_angle"])
-                    for element in array.elements:
-                        components = [FrequencyComponent(**comp) for comp in array_data["frequencies"]]
-                        element.components = components
+                    components = [FrequencyComponent(**comp) for comp in array_data["frequencies"]]
+                    array.components = components
                     self.arrays.append(array)
                     self.ui.arrayList.addItem(f"Array {len(self.arrays)}")
                 if self.arrays:
@@ -174,7 +183,7 @@ class MainWindow(QMainWindow):
                 self.ui.xPosition_target.setValue(scenario["target"]["x"])
                 self.ui.yPosition_target.setValue(scenario["target"]["y"])
                 self.ui.follow_target_checkBox.setChecked(scenario["follow_target"])
-                self.update_simulation()
+                self.update_selected_array()
 
     def populate_scenario_select(self):
         logger.info('Populating scenario select...')
@@ -195,9 +204,15 @@ class MainWindow(QMainWindow):
 
     def add_array(self):
         logger.info('Adding array...')
-        array = Array(type=self.ui.comboBox.currentText().lower())
+        array = Array()
         self.arrays.append(array)
         name = f"Array {len(self.arrays)}"
+        if self.ui.arrayList.count() == 0:
+            name = "Array 1"
+        else:
+            last_array_name = self.ui.arrayList.item(len(self.arrays) - 2).text()
+            last_array_number = int(last_array_name.split(" ")[1])
+            name = f"Array {last_array_number + 1}"
         self.ui.arrayList.addItem(name)
         if len(self.arrays) == 1:
             self.ui.arrayList.setCurrentRow(0)
@@ -225,6 +240,8 @@ class MainWindow(QMainWindow):
             self.ui.yPosition.setValue(array.center[1])
             self.ui.rotation.setValue(int(array.rotation))
             self.ui.steeringValue.setText(f"{array.steering_angle}")
+            self.ui.comboBox.setCurrentIndex(0 if array.type == 'acoustic' else 1)
+            
         self.block = False
         self.update_simulation()
 
@@ -249,7 +266,48 @@ class MainWindow(QMainWindow):
             array.set_steering_angle(temp)
             self.block = False
             self.update_simulation()
-
+    def update_selected_frequency(self):
+        if self.block:
+            return
+        self.block = True
+        current_row = self.ui.frequencyList.currentRow()
+        if current_row >= 0:
+            current_array = self.ui.arrayList.currentRow()
+            if current_array >= 0 and current_array < len(self.arrays):
+                array = self.arrays[current_array]
+                comp = array.components[current_row]
+                unit = self.ui.comboBox_2.currentText()
+                if unit == 'kHz':
+                    comp.frequency = self.ui.frequencyInput.value() * 1000
+                elif unit == 'MHz':
+                    comp.frequency = self.ui.frequencyInput.value() * 1000000
+                else:
+                    comp.frequency = self.ui.frequencyInput.value()
+                comp.phase = self.ui.phaseInput.value()
+                comp.amplitude = self.ui.amplitudeInput.value()
+                self.update_simulation()
+    def update_selected_frequency_ui(self):
+        self.block = True
+        current_row = self.ui.frequencyList.currentRow()
+        if current_row >= 0:
+            current_array = self.ui.arrayList.currentRow()
+            if current_array >= 0 and current_array < len(self.arrays):
+                array = self.arrays[current_array]
+                comp = array.components[current_row]
+                # check unit 
+                comp_freq = comp.frequency
+                if comp_freq >= 1000000:
+                    self.ui.comboBox_2.setCurrentIndex(2)
+                    comp_freq /= 1000000
+                elif comp_freq >= 1000:
+                    self.ui.comboBox_2.setCurrentIndex(1)
+                    comp_freq /= 1000
+                else:
+                    self.ui.comboBox_2.setCurrentIndex(0)
+                self.ui.frequencyInput.setValue(int(comp_freq))
+                self.ui.phaseInput.setValue(comp.phase)
+                self.ui.amplitudeInput.setValue(int(comp.amplitude))
+        self.block = False
 
     def remove_frequency(self):
         logger.info('Removing frequency...')
@@ -264,7 +322,6 @@ class MainWindow(QMainWindow):
     def update_selected_array(self):
         if self.block:
             return
-        # logger.info('Updating selected array...')
         current_row = self.ui.arrayList.currentRow()
         if current_row >= 0 and current_row < len(self.arrays):
             array = self.arrays[current_row]
@@ -275,9 +332,11 @@ class MainWindow(QMainWindow):
             array.center = np.array([self.ui.xPosition.value(), self.ui.yPosition.value()])
             array.rotation = self.ui.rotation.value()
             array.type = self.ui.comboBox.currentText().lower()
+            array.c = 343.0 if array.type == 'acoustic' else 300000000.0
             # array.update_elements_postion()
             array.set_steering_angle(self.ui.steeringAngle.value())
             self.ui.steeringValue.setText(f"{array.steering_angle}")
+            self.ui.rotationValue.setText(f"{array.rotation}")
             self.update_simulation()
 
     def update_simulation(self):
@@ -297,14 +356,13 @@ class MainWindow(QMainWindow):
             if selected_array >= 0 and selected_array < len(self.arrays):
                 array = self.arrays[selected_array]
                 array.set_steering_angle(self.ui.steeringAngle.value())
-        self.block = False
-        if self.ui.plotTabs.currentIndex() == 0:
-            self.field_plot.update_plot(self.arrays)
+        
+        self.field_plot.update_plot(self.arrays)
         if self.ui.follow_target_checkBox.isChecked():
             self.field_plot.plot_target_point(self.ui.xPosition_target.value(), self.ui.yPosition_target.value())
-
-        if selected_array >= 0 and selected_array < len(self.arrays) and self.ui.plotTabs.currentIndex() == 1:
+        if selected_array >= 0 and selected_array < len(self.arrays):
             self.polar_plot.update_plot(self.arrays[selected_array])
+        current_index = self.ui.frequencyList.currentRow()
         self.ui.frequencyList.clear()
         current_row = self.ui.arrayList.currentRow()
         if current_row >= 0 and current_row < len(self.arrays):
@@ -315,8 +373,12 @@ class MainWindow(QMainWindow):
                 phase = comp.phase
                 equation = f"{amplitude:.2f}*sin(2π*{frequency}t + {phase:.2f}°)"
                 self.ui.frequencyList.addItem(equation)
-        if len(self.arrays) == 0:return
+            if current_index >= 0 and current_index < len(array.components):
+                comp = array.components[current_index]
 
+                self.ui.frequencyList.setCurrentRow(current_index)
+        if len(self.arrays) == 0:return
+        self.block = False
         array:Array = self.arrays[0 if len(self.arrays) == selected_array else selected_array]
         logger.info(f"Selected array data:\n"
                f"Center: {array.center}\n"

@@ -8,70 +8,56 @@ from matplotlib.figure import Figure
 
 from Array import Array
 
-# class PolarPlotWidget(QWidget):
-#     def __init__(self, parent=None):
-#         super().__init__(parent)
-#         self.setup_ui()
-        
-#     def setup_ui(self):
-#         layout = QVBoxLayout()
-#         self.figure = Figure(figsize=(12, 8))
-#         self.canvas = FigureCanvasQTAgg(self.figure)
-#         self.ax_polar = self.figure.add_subplot(111, projection='polar')
-#         self.figure.tight_layout()
-#         layout.addWidget(self.canvas)
-#         self.setLayout(layout)
-        
-#     def update_plot(self, array):
-#         self.ax_polar.clear()
-        
-#         # Polar beam pattern plot
-#         theta = np.linspace(0, np.pi, 30)
-#         pattern = np.zeros_like(theta, dtype=complex)
-        
-#         center = array.center
-#         r = 2.0
-#         for angle, i in zip(theta, range(len(theta))):
-#             point = r * np.array([np.cos(angle), np.sin(angle)]) + center
-#             for element in array.elements:
-#                 pattern[i] += element.calculate_field(point)
-        
-#         epsilon = 1e-10
-#         pattern_db = 20 * np.log10(np.abs(pattern) + epsilon)
-#         pattern_db = np.maximum(pattern_db, -40)
-        
-#         self.ax_polar.plot(theta, pattern_db + 40)
-#         self.ax_polar.set_title('Polar Beam Pattern')
-#         self.ax_polar.set_theta_zero_location('E')
-#         self.ax_polar.set_theta_direction(1)
-#         self.ax_polar.set_rlabel_position(90)
-#         self.ax_polar.grid(True)
-        
-#         angles = np.arange(0, 360, 30)
-#         self.ax_polar.set_thetagrids(angles, labels=[f'{angle}°' for angle in angles])
-        
-#         self.figure.tight_layout()
-#         self.canvas.draw()
 
 class PolarPlotWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        self.figure = Figure(figsize=(6, 6))
+        self.figure = Figure(figsize=(15, 15))
+        # self.figure.tight_layout()
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.ax = self.figure.add_subplot(111, projection='polar')
+        self.ax.set_thetamin(-180)
+        self.ax.set_thetamax(0)
+        self.ax.set_theta_zero_location('E')
+        self.ax.set_theta_direction(-1)
+        self.figure.tight_layout()
+        self.ax.set_position([0.0, -0.3, 1, 1.6])
+
         layout.addWidget(self.canvas)
-
     def update_plot(self,array:Array):
-
-        theta = np.linspace(-np.pi, np.pi, 1000)
+        if len(array.components) == 0:
+            self.ax.clear()
+            self.ax.set_thetamin(-180)
+            self.ax.set_thetamax(0)
+            self.ax.set_theta_zero_location('E')
+            self.ax.set_theta_direction(-1)
+            self.canvas.draw()
+            return
+        theta = np.linspace(0, -np.pi, 500)
         af = array.calculate_beam_pattern(theta)
-
+        # standardize the plot to be above 0
+        af = af - np.min(af)
+        # Find the minimum wavelength (highest frequency) component
+        min_wavelength = array.c / min([comp.frequency for comp in array.components])
+        # Scale the array factor based on wavelength
+        scaling_factor = min_wavelength / 0.1  # 0.1 is a reference wavelength
+        af = af * scaling_factor
         self.ax.clear()
-        af_norm = af - np.max(af)
-        af_norm = np.clip(af_norm, -40, 0)
-        self.ax.plot(theta, af_norm + 40)
-        self.ax.set_rticks([0, 10, 20, 30, 40])
-        self.ax.set_rlim(0, 40)
+        self.ax.set_thetamin(-180)
+        self.ax.set_thetamax(0)
+        self.ax.set_theta_zero_location('E')
+        self.ax.set_theta_direction(-1)
+        self.figure.tight_layout()
+        self.ax.plot(theta, af)
+
+        # Calculate tick values based on af range
+        max_af = np.max(af)
+        tick_count = 5
+        tick_values = np.linspace(0, max_af, tick_count)
+        self.ax.set_rticks(tick_values)
+        self.ax.set_rlim(0, max_af)
+        
         self.ax.grid(True)
+        self.ax.set_position([0.0, -0.3, 1, 1.6])
         self.canvas.draw()
